@@ -19,14 +19,20 @@ def generate_image(prompt):
     )
     return response.data[0]["b64_json"]
 
-@app.route("/generate-images", methods=["POST"])
+@app.route('/generate-images', methods=['POST'])
 def generate_images():
-    data = request.json
-    image_url = data.get("image_url")
-    age = data.get("age", "toddler")
+    data = request.get_json()
 
-    if not image_url or not age:
-        return jsonify({"error": "Missing 'image_url' or 'age'"}), 400
+    if not isinstance(data, list) or not data:
+        return jsonify({"error": "Expected a non-empty list"}), 400
+
+    for item in data:
+        image_url = item.get("imageUrl")
+        age = item.get("age")
+        # You could validate and process each item here
+
+    return jsonify({"status": "processed", "count": len(data)}), 200
+
 
     # Prompt engineering
     product_prompt = f"A pair of toddler pants on a white background, high-resolution product photo"
