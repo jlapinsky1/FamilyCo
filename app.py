@@ -1,8 +1,6 @@
-
 from flask import Flask, request, jsonify
 import openai
 import os
-import base64
 
 app = Flask(__name__)
 
@@ -26,17 +24,18 @@ def generate_images():
     if not isinstance(data, list) or not data:
         return jsonify({"error": "Expected a non-empty list"}), 400
 
-    for item in data:
-        image_url = item.get("imageUrl")
-        age = item.get("age")
-        # You could validate and process each item here
+    item = data[0]  # Assuming single-item list from N8N
+    image_url = item.get("imageUrl")
+    age = item.get("age")
+    product = item.get("product", "toddler pants")  # Fallback if missing
+    style = item.get("style", "")  # Optional
 
-    return jsonify({"status": "processed", "count": len(data)}), 200
-
+    if not image_url or not age:
+        return jsonify({"error": "Missing 'imageUrl' or 'age'"}), 400
 
     # Prompt engineering
-    product_prompt = f"A pair of toddler pants on a white background, high-resolution product photo"
-    lifestyle_prompt = f"A {age}-old boy running in a park wearing toddler jogger pants, realistic photography"
+    product_prompt = f"A pair of {product} on a white background, high-resolution product photo"
+    lifestyle_prompt = f"A {age}-old boy running in a park wearing {style or product}, realistic photography"
 
     try:
         product_image = generate_image(product_prompt)
@@ -53,4 +52,3 @@ def generate_images():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
