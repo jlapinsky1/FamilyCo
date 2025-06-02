@@ -6,7 +6,8 @@ app = Flask(__name__)
 
 # Your Stability AI API Key
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY") or "your-api-key-here"
-STABILITY_API_URL = "https://api.stability.ai/v2beta/stable-image/generate/sdxl"
+STABILITY_API_URL ="https://api.stability.ai/v2beta/stable-image/generate/sdxl"
+"
 
 HEADERS = {
     "Authorization": f"Bearer {STABILITY_API_KEY}",
