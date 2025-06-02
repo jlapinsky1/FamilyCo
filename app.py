@@ -4,21 +4,14 @@ import os
 
 app = Flask(__name__)
 
-# Stability AI config
+# Config
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY") or "your-api-key-here"
 STABILITY_API_URL = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
-
-HEADERS = {
-    "Authorization": f"Bearer {STABILITY_API_KEY}",
-    "Content-Type": "application/json",
-    "Accept": "application/json"
-}
 
 @app.route("/generate-images", methods=["POST"])
 def generate_images():
     data = request.get_json()
 
-    # Normalize input
     if isinstance(data, dict):
         data = [data]
     if not data:
@@ -31,37 +24,45 @@ def generate_images():
 
     prompt = f"A high-quality studio photo of {product} styled as {style_clean or 'casual wear'} on a white background"
 
-    payload = {
+    # Required form-data fields
+    form_data = {
         "prompt": prompt,
         "output_format": "base64_json"
     }
 
-    try:
-        print("🔁 Sending prompt:", prompt)
-        print("🔗 Endpoint:", STABILITY_API_URL)
+    headers = {
+        "Authorization": f"Bearer {STABILITY_API_KEY}"
+    }
 
-        response = requests.post(STABILITY_API_URL, headers=HEADERS, json=payload)
+    try:
+        print("🎯 Prompt:", prompt)
+        print("📡 Posting to:", STABILITY_API_URL)
+
+        response = requests.post(
+            STABILITY_API_URL,
+            headers=headers,
+            files=form_data
+        )
 
         if response.status_code != 200:
-            print("❌ Stability API error:", response.text)
+            print("❌ Stability error:", response.text)
             return jsonify({
                 "error": "Stability AI error",
                 "details": response.text
             }), 500
 
-        result = response.json()
-        image_base64 = result.get("image")
+        image_data = response.json().get("image")
 
-        if not image_base64:
+        if not image_data:
             return jsonify({"error": "No image returned"}), 500
 
         return jsonify({
-            "base64_image": f"data:image/jpeg;base64,{image_base64}",
+            "base64_image": f"data:image/jpeg;base64,{image_data}",
             "prompt_used": prompt
         })
 
     except Exception as e:
-        print("🔥 Exception occurred:", str(e))
+        print("🔥 Exception:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
