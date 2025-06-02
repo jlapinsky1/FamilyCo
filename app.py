@@ -8,6 +8,7 @@ app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY") or "your-api-key-here"
 
 def generate_image(prompt):
+    print(f"Generating image with prompt: {prompt}")  # Log the prompt
     response = openai.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -21,21 +22,33 @@ def generate_image(prompt):
 def generate_images():
     data = request.get_json()
 
+    # Accept a list or a single object and normalize to list
+    if isinstance(data, dict):
+        data = [data]
     if not isinstance(data, list) or not data:
-        return jsonify({"error": "Expected a non-empty list"}), 400
+        return jsonify({"error": "Expected a non-empty list or object"}), 400
 
-    item = data[0]  # Assuming single-item list from N8N
+    item = data[0]  # Handle only first item for now
     image_url = item.get("imageUrl")
     age = item.get("age")
-    product = item.get("product", "toddler pants")  # Fallback if missing
-    style = item.get("style", "")  # Optional
+    product = item.get("product", "toddler pants")
+    style = item.get("style", "")
 
     if not image_url or not age:
         return jsonify({"error": "Missing 'imageUrl' or 'age'"}), 400
 
+    # Prompt cleanup
+    formatted_age = age.replace("Months", "month-old").replace("Years", "year-old")
+    style_desc = style.replace("_", " ").replace("-", " ").strip()
+
     # Prompt engineering
     product_prompt = f"A pair of {product} on a white background, high-resolution product photo"
-    lifestyle_prompt = f"A {age}-old boy running in a park wearing {style or product}, realistic photography"
+    lifestyle_prompt = (
+        f"A {formatted_age} boy running in a park wearing {style_desc or product}, realistic photography"
+    )
+
+    print("Product prompt:", product_prompt)
+    print("Lifestyle prompt:", lifestyle_prompt)
 
     try:
         product_image = generate_image(product_prompt)
@@ -47,6 +60,7 @@ def generate_images():
         })
 
     except Exception as e:
+        print("Image generation failed:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
