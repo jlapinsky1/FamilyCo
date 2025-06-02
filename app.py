@@ -1,67 +1,59 @@
 from flask import Flask, request, jsonify
-import openai
+import requests
 import os
 
 app = Flask(__name__)
 
-# Set your OpenAI API key as an environment variable or paste it here
-openai.api_key = os.getenv("OPENAI_API_KEY") or "your-api-key-here"
+# Your Stability AI API Key
+STABILITY_API_KEY = os.getenv("STABILITY_API_KEY") or "your-api-key-here"
+STABILITY_API_URL = "https://api.stability.ai/v2beta/stable-image/generate/sdxl"
 
-def generate_image(prompt):
-    print(f"Generating image with prompt: {prompt}")  # Log the prompt
-    response = openai.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        n=1,
-        size="1024x1024",
-        response_format="b64_json"
-    )
-    return response.data[0]["b64_json"]
+HEADERS = {
+    "Authorization": f"Bearer {STABILITY_API_KEY}",
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+}
 
-@app.route('/generate-images', methods=['POST'])
+@app.route("/generate-images", methods=["POST"])
 def generate_images():
     data = request.get_json()
 
-    # Accept a list or a single object and normalize to list
+    # Accept single object or array
     if isinstance(data, dict):
         data = [data]
-    if not isinstance(data, list) or not data:
-        return jsonify({"error": "Expected a non-empty list or object"}), 400
+    if not data:
+        return jsonify({"error": "Missing input"}), 400
 
-    item = data[0]  # Handle only first item for now
-    image_url = item.get("imageUrl")
-    age = item.get("age")
-    product = item.get("product", "toddler pants")
+    item = data[0]
+    age = item.get("age", "")
+    product = item.get("product", "toddler jogger pants")
     style = item.get("style", "")
 
-    if not image_url or not age:
-        return jsonify({"error": "Missing 'imageUrl' or 'age'"}), 400
-
-    # Prompt cleanup
-    formatted_age = age.replace("Months", "month-old").replace("Years", "year-old")
+    # Clean the prompt
     style_desc = style.replace("_", " ").replace("-", " ").strip()
+    prompt = f"A high-quality photo of {product} styled as {style_desc or 'modern casual wear'} on a white background"
 
-    # Prompt engineering
-    product_prompt = "A pair of toddler jogger pants on a plain background, e-commerce style photo"
-    lifestyle_prompt = "Stylish toddler jogger pants arranged on a small chair in a backyard setting, high-quality photo"
-
-
-        
-    
-    print("Product prompt:", product_prompt)
-    print("Lifestyle prompt:", lifestyle_prompt)
+    payload = {
+        "prompt": prompt,
+        "output_format": "jpeg",
+        "aspect_ratio": "1:1"
+    }
 
     try:
-        product_image = generate_image(product_prompt)
-        lifestyle_image = generate_image(lifestyle_prompt)
+        print(f"Sending prompt to Stability: {prompt}")
+        response = requests.post(STABILITY_API_URL, headers=HEADERS, json=payload)
+        if response.status_code != 200:
+            print("Stability error:", response.text)
+            return jsonify({"error": "Stability AI error", "details": response.text}), 500
 
+        image_data = response.json()
         return jsonify({
-            "product_image": f"data:image/jpeg;base64,{product_image}",
-            "lifestyle_image": f"data:image/jpeg;base64,{lifestyle_image}"
+            "image_url": image_data.get("image", "No image returned"),
+            "prompt_used": prompt
         })
 
     except Exception as e:
-        print("Image generation failed:", str(e))
+        print("Unexpected error:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
