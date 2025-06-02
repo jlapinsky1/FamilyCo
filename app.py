@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Stability API Configuration
+# Stability AI settings
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY", "your-api-key-here")
 STABILITY_API_URL = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
@@ -26,7 +26,7 @@ def generate_images():
 
     files = {
         "prompt": (None, prompt),
-        "output_format": (None, "base64_json")
+        "output_format": (None, "jpeg")  # 🔥 Must be jpeg or png now
     }
 
     headers = {
@@ -35,29 +35,26 @@ def generate_images():
     }
 
     try:
-        print("🟢 Prompt:", prompt)
-        print("🟡 Posting to:", STABILITY_API_URL)
+        print("🎯 Prompt:", prompt)
+        print("📡 Posting to:", STABILITY_API_URL)
 
-        response = requests.post(
-            STABILITY_API_URL,
-            headers=headers,
-            files=files
-        )
+        response = requests.post(STABILITY_API_URL, headers=headers, files=files)
 
         if response.status_code != 200:
-            print("🔴 Stability error:", response.text)
+            print("❌ Stability error:", response.text)
             return jsonify({
                 "error": "Stability AI error",
                 "details": response.text
             }), 500
 
-        image_data = response.json().get("image")
+        result = response.json()
+        image_url = result.get("image")
 
-        if not image_data:
+        if not image_url:
             return jsonify({"error": "No image returned"}), 500
 
         return jsonify({
-            "base64_image": f"data:image/jpeg;base64,{image_data}",
+            "image_url": image_url,
             "prompt_used": prompt
         })
 
