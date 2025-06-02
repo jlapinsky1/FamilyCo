@@ -42,8 +42,9 @@ def generate_images():
     style_desc = style.replace("_", " ").replace("-", " ").strip()
 
     # Prompt engineering
-    product_prompt = "A pair of toddler jogger pants on a white background, catalog product photo"
-    lifestyle_prompt = "A pair of toddler jogger pants displayed on a kid-sized mannequin outdoors, realistic photography"
+    product_prompt = "A pair of toddler jogger pants on a plain background, e-commerce style photo"
+    lifestyle_prompt = "Stylish toddler jogger pants arranged on a small chair in a backyard setting, high-quality photo"
+
 
         
     
