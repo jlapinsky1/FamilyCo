@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY") or "your-api-key-here"
-STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image"
+STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024x1024/text-to-image"
 
 HEADERS = {
     "Authorization": f"Bearer {STABILITY_API_KEY}",
