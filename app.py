@@ -4,12 +4,12 @@ import os
 
 app = Flask(__name__)
 
-# Stability AI API configuration
 STABILITY_API_KEY = os.getenv("STABILITY_API_KEY") or "your-api-key-here"
-STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024x1024/text-to-image"
+STABILITY_API_URL = "https://api.stability.ai/v2beta/stable-image/generate/sd-xl"
 
 HEADERS = {
     "Authorization": f"Bearer {STABILITY_API_KEY}",
+    "Accept": "application/json",
     "Content-Type": "application/json"
 }
 
@@ -17,7 +17,6 @@ HEADERS = {
 def generate_images():
     data = request.get_json()
 
-    # Accept a single object or array of one
     if isinstance(data, dict):
         data = [data]
     if not data:
@@ -28,44 +27,32 @@ def generate_images():
     style = item.get("style", "")
     style_clean = style.replace("_", " ").replace("-", " ").strip()
 
-    # Build the prompt
-    prompt = f"A high-quality studio photo of {product} styled as {style_clean or 'casual wear'} on a white background"
+    prompt = f"Studio photo of {product} styled as {style_clean or 'casual wear'} on white background"
 
-    # Build payload for Stability AI
     payload = {
-        "text_prompts": [{"text": prompt}],
-        "cfg_scale": 7,
-        "clip_guidance_preset": "FAST_BLUE",
-        "height": 1024,
-        "width": 1024,
-        "samples": 1,
-        "steps": 30
+        "prompt": prompt,
+        "output_format": "jpeg",
+        "aspect_ratio": "1:1"
     }
 
     try:
-        print("Sending prompt:", prompt)
+        print("Sending prompt to Stability AI:", prompt)
         response = requests.post(STABILITY_API_URL, headers=HEADERS, json=payload)
 
         if response.status_code != 200:
             print("Stability API error:", response.text)
-            return jsonify({
-                "error": "Stability AI error",
-                "details": response.text
-            }), 500
+            return jsonify({"error": "Stability AI error", "details": response.text}), 500
 
-        result = response.json()
-        artifact = result.get("artifacts", [])[0]
-
-        if artifact.get("finishReason") != "SUCCESS":
-            return jsonify({"error": "Image generation failed", "reason": artifact.get("finishReason")}), 500
+        data = response.json()
+        image_url = data.get("image")
 
         return jsonify({
-            "base64_image": artifact["base64"],
+            "image_url": image_url,
             "prompt_used": prompt
         })
 
     except Exception as e:
-        print("Exception occurred:", str(e))
+        print("Exception:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
